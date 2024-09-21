@@ -5,12 +5,13 @@
                           #:title [title #f]
                           #:detail [detail #f]
                           #:quiet [quiet? #f]
-                          #:fail-fast [fail-fast? #f])
+                          #:fail-fast [fail-fast? #f]
+                          #:compare-by [ok? equal?])
   (let* ([ans (apply f data)]
          [expected (apply standard-f data)])
     (cond
       [title
-       (if (equal? ans expected)
+       (if (ok? ans expected)
            (unless quiet?
              (printf "OK  :~a~%" title))
            (begin
@@ -26,5 +27,10 @@
         (printf "OK  :~a => ~a~%" args expected)
         (printf "ERR :~a => ~a != ~a~%" args ans expected))))
 
+(define (gen-list size #:bounds [bounds (cons 0 10000)])
+  (build-list size (λ (x) (random (car bounds) (cdr bounds)))))
+
 (provide test-to-answer
-         test-to-standard)
+         test-to-standard
+         gen-list)
+
