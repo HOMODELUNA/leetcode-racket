@@ -21,9 +21,9 @@
              (when fail-fast?
                (exit))))])))
 
-(define (test-to-answer f args expected)
+(define (test-to-answer f args expected #:compare-by [ok? equal?])
   (let ([ans (apply f args)])
-    (if (equal? ans expected)
+    (if (ok? ans expected)
         (printf "OK  :~a => ~a~%" args expected)
         (printf "ERR :~a => ~a != ~a~%" args ans expected))))
 
