@@ -20,6 +20,17 @@
                (printf "    ~a => ~a != ~a~%" data ans expected))
              (when fail-fast?
                (exit))))])))
+(define (test-to-checker f ok? args #:title [title (void)] #:quiet [quiet? #f] #:detail [detail #f]#:fail-fast [fail-fast? #f])
+  (let ([ans (apply f args)])
+    (if (ok? args ans)
+        (unless quiet?
+          (printf "OK  :~a~%" title))
+        (begin
+          (printf "ERR :~a~%" title)
+          (when detail
+            (printf "    ~a => ~a~%" args ans))
+          (when fail-fast?
+            (exit))))))
 
 (define (test-to-answer f args expected #:compare-by [ok? equal?])
   (let ([ans (apply f args)])
@@ -32,5 +43,5 @@
 
 (provide test-to-answer
          test-to-standard
+         test-to-checker
          gen-list)
-
