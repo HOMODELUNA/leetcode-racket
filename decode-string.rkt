@@ -1,4 +1,6 @@
 #lang racket
+; RE
+
 (define ((pc/char c) l)
   (cond
     [(empty? l) '()]
@@ -31,8 +33,8 @@
     (cons (cons x y) remain)))
 
 ; (define ((pc-cons p1 p2) l)
-;   (append-map (λ (x-l1) (let ([x (car x-l1)]) 
-;                              (map (map-car (curry cons x)) 
+;   (append-map (λ (x-l1) (let ([x (car x-l1)])
+;                              (map (map-car (curry cons x))
 ;                                   (p2 (cdr x-l1)))))
 ;               (p1 l)))
 (define (pc-apply f . ps)
@@ -72,11 +74,11 @@
   (let loop ([acc '()]
              [l l])
     (if (empty? l) (list (cons (reverse acc) '()))
-      (let ([res1 (p l)])
-        (append-map (λ (x-l1) (let ([x (car x-l1)]
-                                    [l1 (cdr x-l1)])
-                                (loop (cons x acc) l1)))
-                    res1)))))
+        (let ([res1 (p l)])
+          (append-map (λ (x-l1) (let ([x (car x-l1)]
+                                      [l1 (cdr x-l1)])
+                                  (loop (cons x acc) l1)))
+                      res1)))))
 
 (define (pc/section lst)
   (printf "pc/section ~a~%" lst)
@@ -84,7 +86,7 @@
     (pc-apply (λ (n c str c2) (string-repeat str n))
               pc/number
               (pc/char #\[)
-(pc-map (λ (strs) (apply string-append strs)) (pc-repeat pc/section))
+              (pc-map (λ (strs) (apply string-append strs)) (pc-repeat pc/section))
               (pc/char #\])))
   (cond
     [(empty? lst) '()]

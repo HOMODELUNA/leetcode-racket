@@ -1,4 +1,6 @@
 #lang racket
+; https://leetcode.cn/problems/3sum/?envType=study-plan-v2&envId=top-100-liked
+; WA
 
 (define (tails-non-empty lst)
   (if (pair? lst)
