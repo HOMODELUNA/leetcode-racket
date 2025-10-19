@@ -1,76 +1,89 @@
 #lang racket
-; https://leetcode.cn/problems/3sum/?envType=study-plan-v2&envId=top-100-liked
-; WA
+; 2025.10.20
+; https://leetcode.cn/problems/3sum/submissions/671959708/?envType=study-plan-v2&envId=top-100-liked
 
-(define (tails-non-empty lst)
-  (if (pair? lst)
-      (cons lst (tails-non-empty (cdr lst)))
-      '()))
-(define (takef-during lst f)
-  (takef (dropf lst (negate f)) f))
-(define (repeat-cons n x xs)
-  (if (n . <= . 0)
-      xs
-      (repeat-cons (sub1 n) x (cons x xs))))
-(define ((equal-to a) b) (= a b))
-(define (triple= tr1 tr2)
-  (and (= (first tr1 ) (first tr2))
-       (= (second tr1 ) (second tr2))))
+; v[b] 到 v[e] 中第一个满足 v[i] >= x 的 i
+(define (vector-lower-bound v lt? x b e)
+  (cond
+    [(= b e) e]
+    [(= e (add1 b)) (if (lt? (vector-ref v b) x) e b)]
+    [else
+     (define mid (quotient (+ b e) 2))
+     (if (lt? (vector-ref v mid) x)
+         (vector-lower-bound v lt? x mid e)
+         (vector-lower-bound v lt? x b mid))]))
 
-(define (duplicate? triple triples)
-  (and (pair? triples)
-       (triple= triple (car triples))))
+; v[b] 到 v[e] 中第一个满足 x < v[i]  的 i
+(define (vector-upper-bound v lt? x b e)
+  (cond
+    [(= b e) e]
+    [(= e (add1 b)) (if (lt? x (vector-ref v b)) b e)]
+    [else
+     (define mid (quotient (+ b e) 2))
+     (if (lt? x (vector-ref v mid))
+         (vector-upper-bound v lt? x b mid)
+         (vector-upper-bound v lt? x mid e))]))
+
+(define (vector-equal-range v lt? x b e)
+  (values (vector-lower-bound v lt? x b e) (vector-upper-bound v lt? x b e)))
 
 (define/contract (three-sum nums)
   (-> (listof exact-integer?) (listof (listof exact-integer?)))
-  (let*-values ([(raw-positives negative-zeros) (partition positive? nums)]
-                [(zeros raw-negatives) (partition zero? negative-zeros)]
-                [(zero-num) (length zeros)]
-                [(positives) (sort raw-positives >)]
-                [(negatives) (sort raw-negatives <)])
-    ; (println positives)
-    ;(println negatives)
-    (for*/fold ([res (if ((length zeros) . >= . 3) '( (0 0 0)) '())])
-               ([ns (in-list  (tails-non-empty negatives))]
-                [ps (in-list  (tails-non-empty positives))])
-      (let* ([p (car ps)]
-             [n (car ns)]
-             [v (- 0 p n)]
-             [triple (list n v p)])
-        ;(println triple)
-        (cond [(duplicate? triple res) res]
-              [(= 0 v) (if (zero? zero-num) res (cons triple res))]
-              [(and (v . < . 0) (pair? (cdr ns)))
-               (repeat-cons (length (takef-during (cdr ns) (equal-to v)))
-                            triple
-                            res)]
-              [(and (v . > . 0) (pair? (cdr ps)))
-               (repeat-cons (length (takef-during (cdr ps) (equal-to v)))
-                            triple
-                            res)]
-              [else res])))))
+  (define v-nums (vector-sort (list->vector nums) <))
+  (define len (vector-length v-nums))
+  (cond
+    [(zero? len) '()]
+    [(and (zero? (vector-ref v-nums 0))
+          (zero? (vector-ref v-nums (sub1 len))))
+     '((0 0 0))]
+    [else
+     (define nega-end (vector-lower-bound v-nums < 0 0 len))
+     (define pos-begin (vector-upper-bound v-nums < 0 nega-end len))
+     ;(printf "zeros ~a until ~a~%" nega-end pos-begin)
+     (define already (mutable-set))
+     (define nzp
+       (for*/list ([nega-i (in-range 0 nega-end)]
+                   [pos-k (in-range (sub1 len) (sub1 pos-begin) -1)]
+                   #:when (> (- pos-k nega-i) 1)
+                   #:do
+                   [(define vi (vector-ref v-nums nega-i))
+                    (define vk (vector-ref v-nums pos-k))
+                    (define vpair (cons vi vk))]
+                   #:when (not (set-member? already vpair) )
+                   #:do[(define dest (- (+ vi vk)))
+                        (define-values (mid-begin mid-end)
+                          (vector-equal-range v-nums < dest (add1 nega-i) pos-k))
+                        ;(printf "find between ~a(~a) and ~a(~a) -> [~a,~a) ~%" nega-i vi pos-k vk mid-begin mid-end)
+                        ]
+                   #:when (not (= mid-begin mid-end)))
+         (set-add! already vpair)
+         (list vi dest vk)))
+     (define 3-zeros (>= (- pos-begin nega-end) 3))
+     (if 3-zeros
+         (cons '(0 0 0) nzp)
+         nzp)
+     ]))
 
 (require "util/checker.rkt")
 (define ((on g f) . args)
   (apply g (map f args)))
 
-(define/contract (violent nums)
-  (-> (listof exact-integer?) (listof (listof exact-integer?)))
-  (define sorted-nums (sort nums <))
-  (for*/list([ns1 (in-list  (tails-non-empty sorted-nums))]
-             #:when (pair? ns1)
-             [ns2 (in-list (tails-non-empty (cdr ns1)))]
-             #:when (pair? ns2)
-             [ns3 (in-list (tails-non-empty (cdr ns2)))]
-             #:when (and (pair? ns3)
-                         (zero? ((+ . on . car) ns1 ns2 ns3))))
-    (map car (list ns1 ns2 ns3))))
-(test-to-answer three-sum '((0 0 0)) '((0 0 0)))
-(test-to-answer three-sum '((0 0 0 0)) '((0 0 0)))
-(test-to-answer three-sum '((-1 0 1 0)) '((-1 0 1)))
-(test-to-answer three-sum '((1 2 -2 -1)) '())
-(test-to-answer three-sum '((-1 0 1 2 -1 4)) '((-1 0 1) (-1 -1 2)))
-(test-to-answer violent '((0 0 0)) '((0 0 0)))
+(test-to-answer vector-lower-bound (list (vector 1 1 2 3 5 7) < 3 0 6) 3)
+(test-to-answer vector-lower-bound (list (vector 1 1 2 3 5 7) < 4 0 6) 4)
+(test-to-answer vector-lower-bound (list (vector 1 1 2 3 5 7) < 9 0 6) 6)
+(test-to-answer vector-lower-bound (list (vector 1 1 2 3 5 7) < 0 0 6) 0)
+(test-to-answer vector-lower-bound (list (vector 1 1 2 3 5 7) < 2 0 6) 2)
+(test-to-answer vector-upper-bound (list (vector 1 1 2 3 5 7) < 2 0 6) 3)
 
-(for ([size '(10 20 50 50 100 200 200 200 200 200 200 200)])
-  (test-to-standard three-sum violent (list (gen-list size)) #:fail-fast #t #:compare-by set=? #:title size))
+(test-to-answer three-sum '((0 0 0)) '((0 0 0)) #:compare-by set=?)
+(test-to-answer three-sum '((0 0 0 0)) '((0 0 0)) #:compare-by set=?)
+(test-to-answer three-sum '((-1 0 1 0)) '((-1 0 1)) #:compare-by set=?)
+(test-to-answer three-sum '((-1 0 1)) '((-1 0 1)) #:compare-by set=?)
+(test-to-answer three-sum '((1 2 -2 -1)) '() #:compare-by set=?)
+(test-to-answer three-sum '((-1 0 1 2 -1 4)) '((-1 0 1) (-1 -1 2)) #:compare-by set=?)
+(test-to-answer three-sum
+                '((-4 -2 1 -5 -4 -4 4 -2 0 4 0 -2 3 1 -5 0))
+                '((-5 1 4) (-4 0 4) (-4 1 3) (-2 -2 4) (-2 1 1) (0 0 0))
+                #:compare-by set=?)
+;[-4,-2,1,-5,-4,-4,4,-2,0,4,0,-2,3,1,-5,0]
+;[[-5,1,4],[-4,0,4],[-4,1,3],[-2,-2,4],[-2,1,1],[0,0,0]]
